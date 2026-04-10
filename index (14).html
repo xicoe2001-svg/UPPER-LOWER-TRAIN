@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iron Forge" />
+  <meta name="theme-color" content="#030712" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23030712'/><text y='.9em' x='50' text-anchor='middle' font-size='65'>⚔️</text></svg>" />
+  <title>Iron Forge</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { gray: { 950: '#030712' } }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { background: #030712; overscroll-behavior: none; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+    @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } 50% { box-shadow: 0 0 20px 4px rgba(16,185,129,0.3); } }
+    .glow-pulse { animation: pulse-glow 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+     *  IRON FORGE — Training PWA v4 (Final)
+     *  Progression Engine · Backup · PWA · Premium Dark Gym
+     * ═══════════════════════════════════════════════════════════════════════════ */
+
+    // ─── DATA ─────────────────────────────────────────────────────────────────
+
+    const INIT = {
+      workouts: {
+        upper_a: { id:"upper_a", name:"UPPER A — FUERZA", icon:"⚔️", exercises: [
+          { id:"u_a_1", name:"Press máquina convergente", targetSets:4, progressionType:"weight", currentObjective:"110kg x 6 limpio", isBodyweight:false, history:[{set:1,weight:110,reps:5},{set:2,weight:100,reps:8},{set:3,weight:95,reps:8},{set:4,weight:95,reps:5}] },
+          { id:"u_a_2", name:"Dominadas", targetSets:4, progressionType:"reps", currentObjective:"Mejorar reps totales (>40)", isBodyweight:true, history:[{set:1,reps:12},{set:2,reps:10},{set:3,reps:10},{set:4,reps:8}] },
+          { id:"u_a_3", name:"Press hombro mancuernas", targetSets:3, progressionType:"weight", currentObjective:"Subir reps con 26kg", isBodyweight:false, history:[{set:1,weight:26,reps:8},{set:2,weight:24,reps:8},{set:3,weight:24,reps:8}] },
+          { id:"u_a_4", name:"Remo máquina", targetSets:3, progressionType:"weight", currentObjective:"Subir reps con 85kg", isBodyweight:false, history:[{set:1,weight:85,reps:12},{set:2,weight:85,reps:12},{set:3,weight:85,reps:10}] },
+          { id:"u_a_5", name:"Elevaciones laterales", targetSets:3, progressionType:"reps", currentObjective:"15 reps sólidas", isBodyweight:false, history:[{set:1,weight:12,reps:15},{set:2,weight:12,reps:14},{set:3,weight:12,reps:12}] },
+          { id:"u_a_6", name:"Deltoide posterior", targetSets:2, progressionType:"reps", currentObjective:"2x15", isBodyweight:false, history:[{set:1,weight:10,reps:15},{set:2,weight:10,reps:15}] },
+          { id:"u_a_7", name:"Bíceps", targetSets:2, progressionType:"reps", currentObjective:"Rango 10-12 reps", isBodyweight:false, history:[{set:1,weight:16,reps:12},{set:2,weight:16,reps:10}] },
+          { id:"u_a_8", name:"Tríceps", targetSets:2, progressionType:"reps", currentObjective:"Rango 10-12 reps", isBodyweight:false, history:[{set:1,weight:30,reps:12},{set:2,weight:30,reps:10}] },
+          { id:"u_a_9", name:"Farmer hold", targetSets:2, progressionType:"time", currentObjective:"20-30s", isBodyweight:false, history:[{set:1,weight:32,reps:25},{set:2,weight:32,reps:20}] },
+        ]},
+        upper_b: { id:"upper_b", name:"UPPER B — HIPERTROFIA", icon:"🔥", exercises: [
+          { id:"u_b_1", name:"Press inclinado mancuernas", targetSets:3, progressionType:"weight", currentObjective:"Subir a 32 kg", isBodyweight:false, history:[{set:1,weight:30,reps:12},{set:2,weight:30,reps:10},{set:3,weight:30,reps:10}] },
+          { id:"u_b_2", name:"Remo máquina", targetSets:3, progressionType:"weight", currentObjective:"Subir a 90 kg", isBodyweight:false, history:[{set:1,weight:85,reps:15},{set:2,weight:85,reps:12},{set:3,weight:85,reps:10}] },
+          { id:"u_b_3", name:"Dominadas / Jalón", targetSets:3, progressionType:"reps", currentObjective:"Contextual según fatiga", isBodyweight:true, history:[{set:1,reps:10},{set:2,reps:8},{set:3,reps:8}] },
+          { id:"u_b_4", name:"Press hombro mancuernas", targetSets:3, progressionType:"weight", currentObjective:"Subir reps con 26kg", isBodyweight:false, history:[{set:1,weight:26,reps:9},{set:2,weight:26,reps:8},{set:3,weight:26,reps:7}] },
+          { id:"u_b_5", name:"Deltoide posterior", targetSets:2, progressionType:"reps", currentObjective:"2x15", isBodyweight:false, history:[{set:1,weight:10,reps:15},{set:2,weight:10,reps:15}] },
+          { id:"u_b_6", name:"Chest fly", targetSets:3, progressionType:"reps", currentObjective:"12-15 reps", isBodyweight:false, history:[{set:1,weight:14,reps:15},{set:2,weight:14,reps:13},{set:3,weight:14,reps:12}] },
+          { id:"u_b_7", name:"Elevaciones laterales", targetSets:3, progressionType:"reps", currentObjective:"12-15 reps", isBodyweight:false, history:[{set:1,weight:10,reps:15},{set:2,weight:10,reps:15},{set:3,weight:10,reps:14}] },
+          { id:"u_b_8", name:"Bíceps", targetSets:2, progressionType:"reps", currentObjective:"10-12 reps", isBodyweight:false, history:[{set:1,weight:14,reps:12},{set:2,weight:14,reps:10}] },
+          { id:"u_b_9", name:"Tríceps", targetSets:2, progressionType:"reps", currentObjective:"10-12 reps", isBodyweight:false, history:[{set:1,weight:25,reps:12},{set:2,weight:25,reps:10}] },
+        ]},
+        pierna: { id:"pierna", name:"PIERNA — EFICIENTE", icon:"🦿", exercises: [
+          { id:"p_1", name:"Prensa", targetSets:3, progressionType:"reps", currentObjective:"10-12 reps sólidas", isBodyweight:false, history:[{set:1,weight:200,reps:12},{set:2,weight:200,reps:10},{set:3,weight:200,reps:10}] },
+          { id:"p_2", name:"Curl femoral", targetSets:3, progressionType:"reps", currentObjective:"10-15 reps", isBodyweight:false, history:[{set:1,weight:60,reps:15},{set:2,weight:60,reps:12},{set:3,weight:60,reps:12}] },
+          { id:"p_3", name:"Extensiones", targetSets:3, progressionType:"reps", currentObjective:"12-15 reps, quemazón", isBodyweight:false, history:[{set:1,weight:70,reps:15},{set:2,weight:70,reps:14},{set:3,weight:70,reps:13}] },
+          { id:"p_4", name:"Gemelos", targetSets:4, progressionType:"reps", currentObjective:"10-15 reps pesadas", isBodyweight:false, history:[{set:1,weight:80,reps:12},{set:2,weight:80,reps:12},{set:3,weight:80,reps:11},{set:4,weight:80,reps:10}] },
+        ]},
+      }
+    };
+
+    const KEY = "ironForge_v4";
+    const load = () => { try { const r=localStorage.getItem(KEY); if(r) return JSON.parse(r); } catch(e){} return null; };
+    const save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){} };
+
+    // ─── HELPERS ──────────────────────────────────────────────────────────────
+
+    const fmt = (s, bw) => bw ? `${s.reps}` : `${s.weight}kg×${s.reps}`;
+    const rU = (ex) => ex.progressionType === "time" ? "seg" : "reps";
+
+    // ─── BACKUP ───────────────────────────────────────────────────────────────
+
+    function exportData(data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const d = new Date();
+      a.download = `ironforge_backup_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file, onSuccess) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && parsed.workouts) {
+            onSuccess(parsed);
+          } else {
+            alert("El archivo no tiene el formato correcto.");
+          }
+        } catch {
+          alert("Error al leer el archivo JSON.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ─── PROGRESSION ENGINE ───────────────────────────────────────────────────
+
+    function analyzeProgression(ex, newSets, fatigued) {
+      const prev = ex.history;
+      const isBW = ex.isBodyweight;
+      const type = ex.progressionType;
+      const prevTR = prev.reduce((s,h) => s + h.reps, 0);
+      const newTR = newSets.reduce((s,e) => s + e.reps, 0);
+      const diff = newTR - prevTR;
+      const s1 = newSets[0] || { weight:0, reps:0 };
+
+      if (type === "weight" && !isBW) {
+        const m = ex.currentObjective.match(/(\d+)\s*kg\s*x\s*(\d+)/i);
+        const tw = m ? parseInt(m[1]) : (prev[0]?.weight || 0);
+        const tr = m ? parseInt(m[2]) : 6;
+        const hit = s1.weight >= tw;
+        const gap = tr - s1.reps;
+
+        if (hit && gap <= 0) {
+          if (fatigued) return { status:"hold", emoji:"🟡", message:`Buen trabajo, pero agotado. Repetimos ${s1.weight}kg × ${tr} para consolidar.`, newObjective:`${s1.weight}kg x ${tr} — consolidar` };
+          const inc = ex.name.toLowerCase().includes("mancuerna") ? 2 : 2.5;
+          const nw = s1.weight + inc;
+          return { status:"up", emoji:"✅", message:`¡Brutal! Subimos a ${nw}kg para la próxima.`, newObjective:`${nw}kg x ${tr} limpio` };
+        }
+        if (hit && gap === 1) return { status:"hold", emoji:"🟡", message:`Casi lo tienes. Repetimos ${tw}kg para clavar las ${tr} reps.`, newObjective:`${tw}kg x ${tr} — a por ellas` };
+        if (hit && gap >= 2) return { status:"down", emoji:"🔴", message:`Fallaste por ${gap} reps. Mantén ${tw}kg, foco en técnica.`, newObjective:`${tw}kg x ${tr} — foco en técnica` };
+        if (diff > 0) return { status:"hold", emoji:"🟡", message:`No subiste peso en S1 pero +${diff} reps totales. Buen volumen.`, newObjective:ex.currentObjective };
+        return { status:"hold", emoji:"🟡", message:`Mantén la carga y trabaja las reps.`, newObjective:ex.currentObjective };
+      }
+
+      const u = type === "time" ? "seg" : "reps";
+      if (diff > 0) {
+        if (fatigued) return { status:"hold", emoji:"🟡", message:`+${diff} ${u}, pero agotado. Consolidamos la próxima.`, newObjective:`${newTR} ${u} totales — consolidar` };
+        return { status:"up", emoji:"✅", message:`Progreso real: +${diff} ${u}. Objetivo: ${newTR+2} ${u} totales.`, newObjective:`${newTR+2} ${u} totales` };
+      }
+      if (diff === 0) return { status:"hold", emoji:"🟡", message:`Mismo total (${newTR} ${u}). Intenta +1-2 la próxima.`, newObjective:`${newTR+2} ${u} totales` };
+      return { status:"down", emoji:"🔴", message:`${Math.abs(diff)} ${u} menos. Sin drama — puede ser fatiga acumulada.`, newObjective:`Recuperar ${prevTR} ${u} totales` };
+    }
+
+    // ─── COMPONENTS ───────────────────────────────────────────────────────────
+
+    function Back({ onClick, label="Volver" }) {
+      return (
+        <button onClick={onClick} className="flex items-center gap-2 text-gray-500 hover:text-emerald-400 transition-colors mb-5 group">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="group-hover:-translate-x-1 transition-transform"><path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span className="text-sm font-semibold tracking-wide uppercase">{label}</span>
+        </button>
+      );
+    }
+
+    function Pill({ children, v="default" }) {
+      const c = { default:"bg-gray-800 text-gray-400", accent:"bg-emerald-500/15 text-emerald-400", warm:"bg-amber-500/15 text-amber-400" };
+      return <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase ${c[v]}`}>{children}</span>;
+    }
+
+    // ─── SETTINGS MODAL ───────────────────────────────────────────────────────
+
+    function SettingsModal({ data, onImport, onClose }) {
+      const fileRef = useRef(null);
+      return (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center" onClick={onClose}>
+          <div className="w-full max-w-lg bg-gray-900 rounded-t-3xl p-6 pb-10 fade-up" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-700 rounded-full mx-auto mb-6" />
+            <h2 className="text-xl font-black text-gray-100 mb-6 text-center">Ajustes</h2>
+
+            {/* Export */}
+            <button onClick={() => exportData(data)} className="w-full py-4 rounded-xl bg-gray-800 border border-gray-700/50 text-gray-200 font-bold text-sm uppercase tracking-wider mb-3 active:scale-[0.97] transition-all flex items-center justify-center gap-3">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 14v3h14v-3M10 3v10M6 9l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Exportar Backup (.json)
+            </button>
+
+            {/* Import */}
+            <button onClick={() => fileRef.current?.click()} className="w-full py-4 rounded-xl bg-gray-800 border border-gray-700/50 text-gray-200 font-bold text-sm uppercase tracking-wider mb-3 active:scale-[0.97] transition-all flex items-center justify-center gap-3">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 14v3h14v-3M10 13V3M6 7l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Importar Backup (.json)
+            </button>
+            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e => { if(e.target.files[0]) onImport(e.target.files[0]); }} />
+
+            {/* Reset */}
+            <button onClick={() => {
+              if (window.confirm("¿Resetear todos los datos al estado inicial? Esto no se puede deshacer.")) {
+                onImport(null); // null = reset
+              }
+            }} className="w-full py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-sm uppercase tracking-wider mb-6 active:scale-[0.97] transition-all flex items-center justify-center gap-3">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M8 6V4h4v2M5 6v10a2 2 0 002 2h6a2 2 0 002-2V6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Resetear Datos
+            </button>
+
+            <button onClick={onClose} className="w-full py-4 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wider active:scale-[0.97] transition-all">
+              Cerrar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── HOME ─────────────────────────────────────────────────────────────────
+
+    const TH = {
+      upper_a: { g:"from-red-600/20 to-red-900/5", b:"border-red-500/20", t:"text-red-400 bg-red-500/15" },
+      upper_b: { g:"from-amber-600/20 to-amber-900/5", b:"border-amber-500/20", t:"text-amber-400 bg-amber-500/15" },
+      pierna:  { g:"from-emerald-600/20 to-emerald-900/5", b:"border-emerald-500/20", t:"text-emerald-400 bg-emerald-500/15" },
+    };
+
+    function WCard({ w, onClick }) {
+      const t = TH[w.id]||TH.upper_a;
+      return (
+        <button onClick={onClick} className={`w-full text-left group relative overflow-hidden rounded-2xl border ${t.b} bg-gradient-to-br ${t.g} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}>
+          <div className="relative p-6">
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-3xl">{w.icon}</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase ${t.t}`}>{w.exercises.length} ej.</span>
+            </div>
+            <h2 className="text-xl font-black text-gray-100 tracking-tight leading-tight mb-2">{w.name}</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">{w.exercises.slice(0,3).map(e=>e.name).join(" · ")}{w.exercises.length>3&&" …"}</p>
+            <div className="flex justify-end mt-4">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:translate-x-1 group-hover:bg-emerald-500/20 transition-all duration-300">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6.75 3.75L12 9L6.75 14.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 group-hover:text-emerald-400 transition-colors" /></svg>
+              </div>
+            </div>
+          </div>
+        </button>
+      );
+    }
+
+    function Home({ workouts, onSelect, onSettings }) {
+      const list = Object.values(workouts);
+      const d = new Date();
+      const days=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+      const mos=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+      return (
+        <div className="min-h-screen bg-gray-950 px-5 py-8 pb-16">
+          <div className="flex items-start justify-between mb-10">
+            <div>
+              <p className="text-xs font-semibold text-gray-600 tracking-widest uppercase mb-2">{days[d.getDay()]} · {d.getDate()} de {mos[d.getMonth()]}</p>
+              <h1 className="text-4xl font-black text-gray-50 tracking-tight leading-none">¿Qué toca hoy?</h1>
+              <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-700 mt-4" />
+            </div>
+            <button onClick={onSettings} className="mt-1 w-10 h-10 rounded-xl bg-gray-800/80 border border-gray-700/40 flex items-center justify-center text-gray-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all active:scale-90">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" strokeWidth="1.5"/><path d="M16.2 12.2a1.4 1.4 0 00.3 1.5l.05.05a1.7 1.7 0 11-2.4 2.4l-.05-.05a1.4 1.4 0 00-1.5-.3 1.4 1.4 0 00-.85 1.28v.15a1.7 1.7 0 11-3.4 0v-.08a1.4 1.4 0 00-.92-1.28 1.4 1.4 0 00-1.5.3l-.05.05a1.7 1.7 0 11-2.4-2.4l.05-.05a1.4 1.4 0 00.3-1.5 1.4 1.4 0 00-1.28-.85H2.4a1.7 1.7 0 110-3.4h.08a1.4 1.4 0 001.28-.92 1.4 1.4 0 00-.3-1.5l-.05-.05a1.7 1.7 0 112.4-2.4l.05.05a1.4 1.4 0 001.5.3h.07a1.4 1.4 0 00.85-1.28V2.4a1.7 1.7 0 113.4 0v.08a1.4 1.4 0 00.85 1.28 1.4 1.4 0 001.5-.3l.05-.05a1.7 1.7 0 112.4 2.4l-.05.05a1.4 1.4 0 00-.3 1.5v.07a1.4 1.4 0 001.28.85h.15a1.7 1.7 0 110 3.4h-.08a1.4 1.4 0 00-1.28.85z" stroke="currentColor" strokeWidth="1.5"/></svg>
+            </button>
+          </div>
+          <div className="flex flex-col gap-4">{list.map(w=><WCard key={w.id} w={w} onClick={()=>onSelect(w.id)} />)}</div>
+          <p className="text-center text-[10px] text-gray-800 tracking-widest uppercase font-semibold mt-14">Iron Forge v4 · Progresión Inteligente</p>
+        </div>
+      );
+    }
+
+    // ─── BRIEFING ─────────────────────────────────────────────────────────────
+
+    function Briefing({ w, onBack, onStart }) {
+      return (
+        <div className="min-h-screen bg-gray-950 px-5 py-8 pb-16">
+          <Back onClick={onBack} />
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-3"><span className="text-3xl">{w.icon}</span><Pill v="accent">Briefing</Pill></div>
+            <h1 className="text-3xl font-black text-gray-50 tracking-tight leading-tight">{w.name}</h1>
+            <div className="h-1 w-20 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-800 mt-3" />
+          </div>
+          <p className="text-sm font-semibold text-gray-600 tracking-wider uppercase mb-4">Plan de batalla · {w.exercises.length} ejercicios</p>
+          <div className="flex flex-col gap-2.5 mb-10">
+            {w.exercises.map((ex,i)=>(
+              <div key={ex.id} className="p-4 rounded-xl bg-gray-900/70 border border-gray-800/50">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs font-black">{i+1}</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-gray-200 leading-tight mb-1">{ex.name}</h3>
+                    <p className="text-xs font-semibold text-amber-400 mb-2">{ex.currentObjective}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
+                      <span><span className="text-gray-400 font-semibold">{ex.targetSets}</span> series</span>
+                      <span>Último: {ex.history.map(s=>fmt(s,ex.isBodyweight)).join(", ")}{ex.isBodyweight?" reps":""}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={onStart} className="w-full rounded-2xl py-5 font-black text-lg tracking-wide uppercase text-white bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] transition-all shadow-lg shadow-emerald-600/20">
+            <div className="flex items-center justify-center gap-3">
+              <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M5 3L19 11L5 19V3Z" fill="white" /></svg>
+              Empezar Entreno
+            </div>
+          </button>
+        </div>
+      );
+    }
+
+    // ─── TRAINING ─────────────────────────────────────────────────────────────
+
+    function SetIn({ n, pw, pr, val, bw, u, onLog }) {
+      const [wt, setWt] = useState(val?.weight?.toString()??(bw?"":pw.toString()));
+      const [rp, setRp] = useState(val?.reps?.toString()??"");
+      const [ok, setOk] = useState(!!val);
+      const ref = useRef(null);
+      const go = () => { const r=parseInt(rp)||0; if(!r) return; const w=bw?0:(parseFloat(wt)||0); onLog({set:n,weight:w,reps:r}); setOk(true); };
+
+      if (ok && val) return (
+        <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div className="w-9 h-9 rounded-full bg-emerald-500/25 flex items-center justify-center text-emerald-400">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M3.75 9L7.5 12.75L14.25 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <span className="text-sm font-bold text-gray-400">Serie {n}</span>
+          <span className="ml-auto text-lg font-black text-gray-100">{bw?`${val.reps} ${u}`:`${val.weight}kg × ${val.reps}`}</span>
+        </div>
+      );
+      return (
+        <div className="px-4 py-4 rounded-xl bg-gray-900/60 border border-gray-800/50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Serie {n}</span>
+            <span className="text-xs text-gray-700">Ant: {bw?`${pr} ${u}`:`${pw}kg × ${pr}`}</span>
+          </div>
+          <div className="flex items-end gap-3">
+            {!bw && <div className="flex-1">
+              <label className="block text-[10px] text-gray-600 mb-1.5 font-bold uppercase tracking-wider">Peso (kg)</label>
+              <input type="number" inputMode="decimal" step="0.5" value={wt} onChange={e=>setWt(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")ref.current?.focus();}}
+                className="w-full h-14 rounded-xl bg-gray-800 border-2 border-gray-700/50 text-center text-xl font-black text-gray-100 outline-none focus:border-emerald-500 transition-colors" onFocus={e=>e.target.select()} />
+            </div>}
+            <div className="flex-1">
+              <label className="block text-[10px] text-gray-600 mb-1.5 font-bold uppercase tracking-wider">{u==="seg"?"Segundos":"Reps"}</label>
+              <input ref={ref} type="number" inputMode="numeric" value={rp} onChange={e=>setRp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")go();}} placeholder="—"
+                className="w-full h-14 rounded-xl bg-gray-800 border-2 border-gray-700/50 text-center text-xl font-black text-gray-100 outline-none focus:border-emerald-500 transition-colors placeholder-gray-700" onFocus={e=>e.target.select()} />
+            </div>
+            <button onClick={go} disabled={!rp} className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-white transition-all active:scale-90 disabled:opacity-30 disabled:bg-gray-700 bg-emerald-600 shadow-lg shadow-emerald-600/30">
+              <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><path d="M3.75 9L7.5 12.75L14.25 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function ExCard({ ex, sd, onLog }) {
+      const bw=ex.isBodyweight, u=rU(ex), done=sd.filter(Boolean).length, all=done===ex.targetSets;
+      return (
+        <div className={`rounded-2xl border overflow-hidden transition-all ${all?"border-emerald-500/30 bg-emerald-500/[0.03]":"border-gray-800/50 bg-gray-900/50"}`}>
+          <div className={`px-5 py-3 text-center border-b ${all?"border-emerald-500/20 bg-emerald-500/10":"border-amber-500/10 bg-amber-500/[0.06]"}`}>
+            {all?<span className="text-sm font-black text-emerald-400 uppercase tracking-wider">✓ Completado</span>
+              :<span className="text-sm font-black text-amber-400 uppercase tracking-wide">Objetivo: {ex.currentObjective}</span>}
+          </div>
+          <div className="px-5 pt-4 pb-2">
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="text-base font-black text-gray-100 leading-tight flex-1 pr-3">{ex.name}</h3>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${all?"bg-emerald-500/20 text-emerald-400":"bg-gray-800 text-gray-500"}`}>{done}/{ex.targetSets}</span>
+            </div>
+            <p className="text-[11px] text-gray-600">Anterior: {ex.history.map(s=>fmt(s,bw)).join(", ")}{bw?" reps":""}</p>
+          </div>
+          <div className="px-5 pb-5 pt-2 flex flex-col gap-2.5">
+            {Array.from({length:ex.targetSets},(_,i)=>{
+              const p=ex.history[i]||ex.history[ex.history.length-1]||{weight:0,reps:0};
+              return <SetIn key={`${ex.id}-${i}`} n={i+1} pw={p.weight||0} pr={p.reps||0} val={sd[i]||null} bw={bw} u={u} onLog={d=>onLog(ex.id,i,d)} />;
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function Training({ w, log, onLog, onFinish, onCancel }) {
+      const tot=w.exercises.reduce((s,ex)=>s+ex.targetSets,0);
+      const done=w.exercises.reduce((s,ex)=>s+(log[ex.id]||[]).filter(Boolean).length,0);
+      const pct=tot>0?(done/tot)*100:0;
+      return (
+        <div className="min-h-screen bg-gray-950 px-5 py-6 pb-32">
+          <div className="flex items-center justify-between mb-1">
+            <Back onClick={onCancel} label="Salir" />
+            <Pill v="accent">{w.icon} En curso</Pill>
+          </div>
+          <div className="mb-6">
+            <div className="flex items-end justify-between mb-2">
+              <h1 className="text-xl font-black text-gray-100 tracking-tight">{w.name}</h1>
+              <span className="text-sm font-bold text-gray-600">{done}/{tot}</span>
+            </div>
+            <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-emerald-500 to-emerald-400" style={{width:`${pct}%`,boxShadow:"0 0 12px rgba(16,185,129,0.4)"}} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-5">{w.exercises.map(ex=><ExCard key={ex.id} ex={ex} sd={log[ex.id]||[]} onLog={onLog} />)}</div>
+
+          {/* Bottom bar: Cancel always visible, Finish when complete */}
+          <div className="fixed bottom-0 left-0 right-0 p-5 pb-8 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent">
+            {done===tot ? (
+              <button onClick={onFinish} className="w-full py-5 rounded-2xl font-black text-lg tracking-wide uppercase text-white bg-emerald-600 active:scale-[0.97] transition-all shadow-xl shadow-emerald-600/30 glow-pulse">
+                <div className="flex items-center justify-center gap-3">
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11L9 16L18 6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Finalizar Sesión
+                </div>
+              </button>
+            ) : (
+              <button onClick={onCancel} className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide uppercase text-red-400 bg-red-500/10 border border-red-500/20 active:scale-[0.97] transition-all">
+                Cancelar Entreno
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── PROGRESSION SUMMARY ──────────────────────────────────────────────────
+
+    function Summary({ w, log, onConfirm, onBack }) {
+      const [fat, setFat] = useState(null);
+      const tV=w.exercises.reduce((v,ex)=>v+(log[ex.id]||[]).reduce((s,e)=>e?s+(e.weight||0)*e.reps:s,0),0);
+      const tR=w.exercises.reduce((r,ex)=>r+(log[ex.id]||[]).reduce((s,e)=>e?s+e.reps:s,0),0);
+      const tS=w.exercises.reduce((s,ex)=>s+(log[ex.id]||[]).filter(Boolean).length,0);
+
+      const an=w.exercises.map(ex=>{
+        const ns=(log[ex.id]||[]).filter(Boolean);
+        return {ex,ns,...analyzeProgression(ex,ns,fat==="agotado")};
+      });
+      const ups=an.filter(a=>a.status==="up").length;
+      const hol=an.filter(a=>a.status==="hold").length;
+      const dns=an.filter(a=>a.status==="down").length;
+      const sc={up:"border-emerald-500/30 bg-emerald-500/[0.06]",hold:"border-amber-500/30 bg-amber-500/[0.06]",down:"border-red-500/30 bg-red-500/[0.06]"};
+
+      return (
+        <div className="min-h-screen bg-gray-950 px-5 py-8 pb-16">
+          <Back onClick={onBack} label="Revisar" />
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">💀</div>
+            <h1 className="text-3xl font-black text-gray-50 tracking-tight mb-1">Sesión Completa</h1>
+            <p className="text-sm text-gray-500">{w.name}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {[{v:tS,l:"Series"},{v:tR,l:"Reps"},{v:tV>=1000?`${(tV/1000).toFixed(1)}k`:tV,l:"Vol (kg)"}].map((s,i)=>(
+              <div key={i} className="rounded-xl p-3.5 text-center bg-emerald-500/[0.06] border border-emerald-500/20">
+                <p className="text-2xl font-black text-gray-100">{s.v}</p>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">{s.l}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Fatigue */}
+          <div className="mb-6 p-4 rounded-xl bg-gray-900/70 border border-gray-800/50">
+            <p className="text-sm font-bold text-gray-300 mb-3 text-center">¿Cómo te sientes?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={()=>setFat("bien")} className={`py-3.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all active:scale-95 ${fat==="bien"?"bg-emerald-600 text-white shadow-lg shadow-emerald-600/30":"bg-gray-800 text-gray-400"}`}>💪 Bien</button>
+              <button onClick={()=>setFat("agotado")} className={`py-3.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all active:scale-95 ${fat==="agotado"?"bg-amber-600 text-white shadow-lg shadow-amber-600/30":"bg-gray-800 text-gray-400"}`}>😮‍💨 Agotado</button>
+            </div>
+            {fat==="agotado"&&<p className="text-xs text-amber-400/80 text-center mt-3">Los objetivos no subirán para permitir recuperación.</p>}
+          </div>
+
+          {fat && <>
+            <div className="flex items-center justify-center gap-3 mb-5 flex-wrap">
+              {ups>0&&<span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">✅ {ups} suben</span>}
+              {hol>0&&<span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full">🟡 {hol} mantienen</span>}
+              {dns>0&&<span className="text-xs font-bold text-red-400 bg-red-500/10 px-3 py-1 rounded-full">🔴 {dns} bajan</span>}
+            </div>
+            <div className="flex flex-col gap-3 mb-8">
+              {an.map(({ex,ns,status,emoji,message,newObjective})=>(
+                <div key={ex.id} className={`rounded-xl border p-4 ${sc[status]}`}>
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-lg leading-none">{emoji}</span>
+                    <h3 className="text-sm font-bold text-gray-200 flex-1">{ex.name}</h3>
+                  </div>
+                  <div className="space-y-1 mb-3 pl-7">
+                    <div className="flex gap-2 text-[11px]"><span className="text-gray-600 w-14">Anterior</span><span className="text-gray-500">{ex.history.map(s=>fmt(s,ex.isBodyweight)).join(", ")}</span></div>
+                    <div className="flex gap-2 text-[11px]"><span className="text-emerald-500 font-bold w-14">Hoy</span><span className="text-gray-200 font-semibold">{ns.map(s=>fmt(s,ex.isBodyweight)).join(", ")}</span></div>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed pl-7 mb-2">{message}</p>
+                  <div className="pl-7"><span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Próximo: </span><span className="text-xs font-bold text-amber-400">{newObjective}</span></div>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>onConfirm(an)} className="w-full py-5 rounded-2xl font-black text-lg tracking-wide uppercase text-white bg-emerald-600 active:scale-[0.97] transition-all shadow-xl shadow-emerald-600/30">
+              <div className="flex items-center justify-center gap-3">
+                <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M19 21H3V3H14L19 8V21Z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 3V8H19" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Guardar en Memoria
+              </div>
+            </button>
+          </>}
+        </div>
+      );
+    }
+
+    // ─── SAVED ────────────────────────────────────────────────────────────────
+
+    function Saved({ onDone }) {
+      useEffect(()=>{const t=setTimeout(onDone,2200);return()=>clearTimeout(t);},[onDone]);
+      return (
+        <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-5">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/15 flex items-center justify-center mb-6">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M8 20L16 28L32 12" stroke="#10B981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <h1 className="text-2xl font-black text-gray-50 tracking-tight mb-2">Guardado</h1>
+          <p className="text-sm text-gray-500">Historial y objetivos actualizados.</p>
+        </div>
+      );
+    }
+
+    // ─── APP ──────────────────────────────────────────────────────────────────
+
+    function App() {
+      const [data, setData] = useState(()=>{ const s=load(); if(s) return s; save(INIT); return INIT; });
+      const [scr, setScr] = useState("home");
+      const [sel, setSel] = useState(null);
+      const [log, setLog] = useState({});
+      const [showSettings, setShowSettings] = useState(false);
+
+      useEffect(()=>{save(data);},[data]);
+
+      const w = sel ? data.workouts[sel] : null;
+
+      const nav = {
+        pick: (id)=>{setSel(id);setScr("briefing");},
+        home: ()=>{setScr("home");setSel(null);setLog({});},
+        start: ()=>{
+          const l={}; w.exercises.forEach(ex=>{l[ex.id]=new Array(ex.targetSets).fill(null);}); setLog(l); setScr("training");
+        },
+        log: (eid,idx,d)=>{ setLog(p=>{const u={...p};const s=[...(u[eid]||[])];s[idx]=d;u[eid]=s;return u;}); },
+        finish: ()=>setScr("summary"),
+        save: (analyses)=>{
+          setData(p=>{
+            const nd=JSON.parse(JSON.stringify(p));
+            nd.workouts[sel].exercises.forEach(ex=>{
+              const ns=(log[ex.id]||[]).filter(Boolean);
+              if(ns.length>0) ex.history=ns;
+              const a=analyses.find(a=>a.ex.id===ex.id);
+              if(a) ex.currentObjective=a.newObjective;
+            });
+            return nd;
+          });
+          setScr("saved");
+        },
+        cancel: ()=>{
+          if(Object.values(log).some(s=>s.some(Boolean))) {
+            if(!window.confirm("Tienes series registradas. ¿Salir sin guardar?")) return;
+          }
+          nav.home();
+        },
+      };
+
+      const handleImport = (file) => {
+        if (file === null) { setData(INIT); setShowSettings(false); return; }
+        importData(file, (parsed) => { setData(parsed); setShowSettings(false); });
+      };
+
+      return (
+        <>
+          {showSettings && <SettingsModal data={data} onImport={handleImport} onClose={()=>setShowSettings(false)} />}
+          {scr==="saved" && <Saved onDone={nav.home} />}
+          {scr==="summary" && w && <Summary w={w} log={log} onConfirm={nav.save} onBack={()=>setScr("training")} />}
+          {scr==="training" && w && <Training w={w} log={log} onLog={nav.log} onFinish={nav.finish} onCancel={nav.cancel} />}
+          {scr==="briefing" && w && <Briefing w={w} onBack={nav.home} onStart={nav.start} />}
+          {scr==="home" && <Home workouts={data.workouts} onSelect={nav.pick} onSettings={()=>setShowSettings(true)} />}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
